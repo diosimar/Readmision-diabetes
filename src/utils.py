@@ -1,6 +1,8 @@
 from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin
 from joblib import dump
 import pandas as pd
+import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt 
 
@@ -95,6 +97,91 @@ def boxplot_per_classes(df, attribute, groupby, title=None, ticks_rotation=0, ax
     sns.boxplot(x=groupby, y=attribute, data=df, ax=ax)
     plt.title(title)
     plt.xticks(rotation=ticks_rotation)
+
+######______________________________________________________________________________________________######
+
+###  funciones para hacer el reprocesado de la informacion
+
+class AgrupadorDeClases(TransformerMixin):
+    """
+    Class que hereda el metodo fit_tranform de TransformerMixin para generar agrupaciones categoricas sobre 
+    un campo especificado
+    
+    :param cols: columnas a tranformar ( se ingresan en una lista)
+    :param n_grupos: cantidad de grupos a formar.
+    """
+    def __init__(self, cols, n_grupos=10):
+        self.cols = cols
+        self.n_grupos = n_grupos
+        
+    def fit(self, X, y=None):
+        # contar la frecuencia de cada clase en cada columna
+        self.clase_counts = {}
+        for col in self.cols:
+            self.clase_counts[col] = X[col].value_counts()
+        # determinar el umbral para agrupar las clases
+        umbral = {}
+        for col in self.cols:
+            umbral[col] = self.clase_counts[col].nsmallest(self.n_grupos).iloc[-1]
+        # obtener las clases a agrupar en "otro"
+        self.clases_a_agrupar = {}
+        for col in self.cols:
+            self.clases_a_agrupar[col] = set(self.clase_counts[col][self.clase_counts[col] < umbral[col]].index)
+        return self
+    
+    def transform(self, X, y=None):
+        # agrupar las clases con menor frecuencia en una sola clase llamada "otro"
+        for col in self.cols:
+            X.loc[X[col].isin(self.clases_a_agrupar[col]), col] = 'otro'
+        return X
+
+
+def eliminar_outliers(df, col_list, n_std):
+    """
+    función que identifica y elimina outlier sobre un conjunto de datos 
+    
+    :param df: Dataframe de pandas con la información a evaluar
+    :param col_list: columnas a tranformar ( se ingresan en una lista)
+    :param n_std: desviasion estandar permitida ( umbral) sobre los datos atipicos
+    """
+    # calcular la media y la desviación estándar de las columnas especificadas
+    col_mean = df[col_list].mean()
+    col_std = df[col_list].std()
+    
+    # identificar los outliers en cada columna
+    outliers = np.abs(df[col_list] - col_mean) > n_std * col_std
+    
+    # reemplazar los outliers con NaN
+    df[col_list] = df[col_list].where(~outliers, np.nan)
+    
+    # eliminar las filas que contienen NaN
+    df = df.dropna()
+    
+    return df
+
+
+
+class Homologar(TransformerMixin):
+    """
+    Class que hereda el metodo fit_tranform de TransformerMixin para generar homologacion de categoricas sobre 
+    un campo especificado y una diccionario de mapeo
+    
+    :param col_name: columnas a tranformar ( se ingresan en una lista)
+    :param dictionary: diccionario con los datos  a homologar.
+    """
+    
+    def __init__(self, col_name, dictionary):
+        self.col_name = col_name
+        self.dictionary = dictionary
+        
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X[self.col_name] = X[self.col_name].map(self.dictionary).fillna(X[self.col_name])
+        return X
+
+
 
 
 #################################### funciones para despliegue y  ###########################################
