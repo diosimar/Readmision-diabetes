@@ -27,4 +27,4 @@ warnings.filterwarnings("ignore")
 data = pd.read_csv('./data/diabetic_data.csv', na_values='?', low_memory=False)
 IDs_mapping= pd.read_csv('./data/IDs_mapping.csv', na_values='?', low_memory=False)
 
-data.head()
+# como primer paso del procesamiento de datos 
