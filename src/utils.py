@@ -136,7 +136,7 @@ class AgrupadorDeClases(TransformerMixin):
         return X
 
 
-def eliminar_outliers(df, col_list, n_std):
+def eliminar_outliers1(df, col_list, n_std):
     """
     función que identifica y elimina outlier sobre un conjunto de datos 
     
@@ -158,6 +158,19 @@ def eliminar_outliers(df, col_list, n_std):
     df = df.dropna()
     
     return df
+
+
+def eliminar_outliers(dataframe, columnas):
+    df = dataframe.copy()
+    for columna in columnas:
+        Q1 = df[columna].quantile(0.25)
+        Q3 = df[columna].quantile(0.75)
+        IQR = Q3 - Q1
+        limite_inferior = Q1 - 1.5 * IQR
+        limite_superior = Q3 + 1.5 * IQR
+        df = df[(df[columna] > limite_inferior) & (df[columna] < limite_superior)]
+    return df
+    
 
 
 
@@ -182,6 +195,27 @@ class Homologar(TransformerMixin):
         return X
 
 
+class MissingValueImputer(TransformerMixin):
+    def __init__(self, numerical_columns, categorical_columns):
+        self.numerical_columns = numerical_columns
+        self.categorical_columns = categorical_columns
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        # Imputa valores perdidos en columnas numéricas
+        for column in self.numerical_columns:
+            if X[column].isnull().sum() > 0.15*len(X):
+                X[column].fillna(X[column].mean(), inplace=True)
+
+        # Imputa valores perdidos en columnas categóricas
+        for column in self.categorical_columns:
+            if X[column].isnull().sum() > 0.15*len(X):
+                X[column].fillna(X[column].value_counts().index[0], inplace=True)
+
+        return X
+    
 
 
 #################################### funciones para despliegue y  ###########################################
