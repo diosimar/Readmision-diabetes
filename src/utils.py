@@ -196,6 +196,14 @@ class Homologar(TransformerMixin):
 
 
 class MissingValueImputer(TransformerMixin):
+    """
+    Class que hereda el metodo fit_tranform de TransformerMixin para generar imputacion de datos faltnates  en 
+    variables numericas considerando la media y en  variables categoricas  utilizando el valor mas frecuente,
+    ademas se considera que la columna no supere un 15% en datos faltantes
+    
+    :param numerical_columns: lista de columnas numericas a tranformar
+    :param numerical_columns: lista de columnas numericas a tranformar
+    """
     def __init__(self, numerical_columns, categorical_columns):
         self.numerical_columns = numerical_columns
         self.categorical_columns = categorical_columns
